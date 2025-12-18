@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  background-color: #1a1c20;
+  color: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #1a1c20; /* Deep dark background */
+  min-height: 100vh;
+}
+
+/* 🎨 AUTHENTIC DARK SCROLLBARS */
+
+/* 1. The Scrollbar Track (The background area) */
+::-webkit-scrollbar {
+  width: 12px;               /* Vertical width */
+  height: 12px;              /* Horizontal height */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;   /* Keep it transparent so it blends with sidebar/main bg */
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* 2. The Scrollbar Thumb (The moving part) */
+::-webkit-scrollbar-thumb {
+  background-color: #2f3136; /* Matching your 'border-subtle' color */
+  border-radius: 99px;       /* Fully rounded pills */
+  
+  /* This creates the "floating" effect. 
+     It adds a transparent border around the thumb, 
+     shrinking the visible paint area. */
+  border: 3px solid transparent; 
+  background-clip: content-box; 
+  transition: background-color 0.2s ease;
+}
+
+/* 3. Hover State */
+::-webkit-scrollbar-thumb:hover {
+  background-color: #4b4e57; /* Slightly lighter grey when hovering */
+}
+
+/* 4. Active State (Clicking) */
+::-webkit-scrollbar-thumb:active {
+  background-color: #3689e6; /* Your 'accent-blue' when clicking/dragging */
+  border-width: 2px;         /* Make it slightly fatter when dragging */
+}
+
+/* Firefox Fallback (Limited support) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2f3136 transparent;
+}
