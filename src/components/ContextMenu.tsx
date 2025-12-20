@@ -4,10 +4,11 @@ import { LucideIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export interface ContextMenuItem {
-  label: string;
+  label?: string;
   icon?: LucideIcon;
-  onClick: () => void;
+  onClick?: () => void;
   variant?: 'default' | 'danger';
+  type?: 'item' | 'separator';
 }
 
 interface ContextMenuProps {
@@ -71,24 +72,30 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
         className="fixed z-[100] w-48 bg-[#232529] border border-[#2f3136] rounded-lg shadow-2xl py-1 overflow-hidden"
         onClick={(e) => e.stopPropagation()} // Чтобы клик по меню не закрывал его сразу
       >
-        {items.map((item, index) => (
-          <button
-            key={index}
-            onClick={() => {
-              item.onClick();
-              onClose();
-            }}
-            className={cn(
-              "w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors text-left",
-              item.variant === 'danger' 
-                ? "text-red-400 hover:bg-red-400/10" 
-                : "text-text-secondary hover:text-white hover:bg-[#2f3136]"
-            )}
-          >
-            {item.icon && <item.icon size={14} />}
-            {item.label}
-          </button>
-        ))}
+        {items.map((item, index) => {
+          if (item.type === 'separator') {
+            return <div key={index} className="h-[1px] bg-[#2f3136] my-1 mx-2" />;
+          }
+
+          return (
+            <button
+              key={index}
+              onClick={() => {
+                item.onClick?.();
+                onClose();
+              }}
+              className={cn(
+                "w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors text-left",
+                item.variant === 'danger'
+                  ? "text-red-400 hover:bg-red-400/10"
+                  : "text-text-secondary hover:text-white hover:bg-[#2f3136]"
+              )}
+            >
+              {item.icon && <item.icon size={14} />}
+              {item.label}
+            </button>
+          );
+        })}
       </motion.div>
     </AnimatePresence>
   );

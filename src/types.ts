@@ -6,7 +6,7 @@ export type ContentType = 'url' | 'color' | 'code' | 'text' | 'image';
  * Represents the payload coming from the Clipboard Monitor.
  * Used to normalize data before it hits the Store.
  */
-export type ClipboardContent = 
+export type ClipboardContent =
   | { type: 'text'; value: string }
   | { type: 'image'; value: string }; // value is the Filename (e.g. "img_uuid.png")
 
@@ -20,7 +20,8 @@ export interface NoteItem {
    * For images: Stores the filename located in `AppLocalData/images/`.
    * The actual image data is loaded asynchronously by the component.
    */
-  imageData?: string; 
+  imageData?: string;
+  isFavorite?: boolean;
 }
 
 export interface Folder {
@@ -45,4 +46,5 @@ export interface HistoryItem {
    * Legacy support: May contain "data:image..." base64 strings (rare).
    */
   imageData?: string;
+  isFavorite?: boolean;
 }

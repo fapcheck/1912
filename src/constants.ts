@@ -1,8 +1,9 @@
 // src/constants.ts
+import type { Project } from './types';
 
 export const APP_CONFIG = {
-  DB_NAME: 'ClipboardManagerDB', // ✅ Вернули
-  STORE_NAME: 'app_store',       // ✅ Вернули
+  DB_NAME: 'ClipboardManagerDB',
+  STORE_NAME: 'app_store',
   MAX_HISTORY_ITEMS: 50,
   CLIPBOARD_POLL_INTERVAL: 1000,
   SAVE_DEBOUNCE_DELAY: 500,
@@ -12,7 +13,7 @@ export const APP_CONFIG = {
   }
 };
 
-export const DEFAULT_PROJECT: any = { 
+export const DEFAULT_PROJECT: Project = {
   id: 'p1',
   name: 'Личное',
   folders: [

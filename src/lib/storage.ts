@@ -10,18 +10,18 @@ let dirChecked = false;
  */
 function base64ToUint8Array(base64: string): Uint8Array {
   // Strip the header if present (e.g., "data:image/png;base64,...")
-  const base64Clean = base64.includes(',') 
-    ? base64.split(',')[1] 
+  const base64Clean = base64.includes(',')
+    ? base64.split(',')[1]
     : base64;
 
   const binaryString = atob(base64Clean);
   const len = binaryString.length;
   const bytes = new Uint8Array(len);
-  
+
   for (let i = 0; i < len; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
-  
+
   return bytes;
 }
 
@@ -60,12 +60,11 @@ export async function saveImageToDisk(base64Data: string): Promise<string> {
     const filePath = `images/${fileName}`;
 
     const binaryData = base64ToUint8Array(base64Data);
-    
-    await writeFile(filePath, binaryData, { 
-      baseDir: BaseDirectory.AppLocalData 
+
+    await writeFile(filePath, binaryData, {
+      baseDir: BaseDirectory.AppLocalData
     });
 
-    console.log(`✅ File saved: ${fileName} (${binaryData.byteLength} bytes)`);
     return fileName;
 
   } catch (err) {
