@@ -1,5 +1,5 @@
 // src/components/Cards.tsx
-import React, { useState, useCallback, memo, useEffect } from 'react';
+import React, { useState, useCallback, memo, useEffect, useRef } from 'react';
 
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { AlignJustify, Pencil, Trash2, ExternalLink, Check, Star } from 'lucide-react';
@@ -132,6 +132,16 @@ const ImagePreview = ({ fileName, compact }: { fileName: string, compact?: boole
 // ⚡ Custom Hook for Card Logic
 function useCardActions(item: NoteItem) {
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -156,8 +166,12 @@ function useCardActions(item: NoteItem) {
         setCopied(true);
       }
 
-      const timer = setTimeout(() => setCopied(false), 1500);
-      return () => clearTimeout(timer);
+      // Clear any existing timer
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      // Set new timer
+      timerRef.current = setTimeout(() => setCopied(false), 1500);
     } catch {
       // Silent fail for copy
     }
@@ -167,7 +181,7 @@ function useCardActions(item: NoteItem) {
     e.stopPropagation();
     if (item.contentType === 'url') {
       try {
-        await (opener as any).open(item.text);
+        await opener.openUrl(item.text);
       } catch {
         // Silent fail for URL open
       }

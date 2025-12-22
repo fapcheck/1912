@@ -2,13 +2,9 @@
 import { create } from 'zustand';
 import { DEFAULT_PROJECT, APP_CONFIG } from './constants';
 import { detectContentType } from './lib/utils';
+import { logger } from './lib/logger';
 import { saveToDB, loadFromDB } from './db';
-import type { Project, HistoryItem } from './types';
-
-// 🆕 Explicit type definition: Images now carry filenames, not Base64
-export type ClipboardContent =
-    | { type: 'text'; value: string }
-    | { type: 'image'; value: string }; // value = filename (e.g., "img_123.png")
+import type { Project, HistoryItem, ClipboardContent } from './types';
 
 interface AppState {
     projects: Project[];
@@ -59,7 +55,7 @@ const createDebouncedSaver = () => {
 
         const timeout = setTimeout(() => {
             saveToDB(key, data, (err) => {
-                if (err) console.error(`Failed to save ${key}:`, err);
+                if (err) logger.error(`Failed to save ${key}:`, err);
             });
             timeouts.delete(key);
         }, APP_CONFIG.SAVE_DEBOUNCE_DELAY);
@@ -90,7 +86,7 @@ export const useStore = create<AppState>((set, get) => ({
                 isDbLoaded: true
             });
         } catch (err) {
-            console.error("Failed to initialize DB:", err);
+            logger.error("Failed to initialize DB:", err);
         }
     },
 

@@ -5,6 +5,10 @@ import clipboard from 'tauri-plugin-clipboard-api';
 import { useStore } from '../store';
 import { Folder } from '../types';
 import { APP_CONFIG } from '../constants';
+import { logger } from '../lib/logger';
+import { useKeyboardShortcuts } from './useKeyboardShortcuts';
+import { useSelectionMode } from './useSelectionMode';
+import { useImportExport } from './useImportExport';
 
 export type ModalConfig = {
     isOpen: boolean;
@@ -22,7 +26,7 @@ export function useAppLogic() {
         history, projects, globalTags,
         addProject, addFolder, addNote,
         editNote, deleteProject, deleteFolder, deleteNote,
-        renameProject, renameFolder, setHistory, setGlobalTags, setProjects,
+        renameProject, renameFolder,
         deleteHistoryItem
     } = useStore();
 
@@ -32,8 +36,17 @@ export function useAppLogic() {
     const [search, setSearch] = useState('');
     const [focusMode, setFocusMode] = useState(false);
     const [isPinned, setIsPinned] = useState(false);
-    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // --- Use Extracted Hooks ---
+    const { selectedItems, toggleSelectItem, clearSelection, deleteSelectedItems } = useSelectionMode();
+    const { importData, exportData } = useImportExport();
+
+    useKeyboardShortcuts({
+        searchInputRef,
+        onToggleFocusMode: useCallback(() => setFocusMode(prev => !prev), []),
+        onClearSearch: useCallback(() => setSearch(''), []),
+    });
 
     // --- Persistent Expanded Folders ---
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => {
@@ -61,36 +74,11 @@ export function useAppLogic() {
             setIsPinned(newValue);
             toast.success(newValue ? "Закреплено поверх окон" : "Откреплено");
         } catch (err) {
-            console.error(err);
+            logger.error('Failed to toggle pin:', err);
             toast.error("Не удалось изменить режим окна");
         }
     };
 
-    // --- Keyboard Shortcuts ---
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
-            const isMod = e.metaKey || e.ctrlKey;
-
-            if (isMod && e.key === APP_CONFIG.KEYBOARD_SHORTCUTS.SEARCH) {
-                e.preventDefault();
-                searchInputRef.current?.focus();
-            }
-
-            if (isMod && e.key === APP_CONFIG.KEYBOARD_SHORTCUTS.FOCUS_MODE) {
-                e.preventDefault();
-                setFocusMode(prev => !prev);
-            }
-
-            if (e.key === 'Escape') {
-                searchInputRef.current?.blur();
-                setSearch('');
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
 
     // --- Search & Filtering Logic ---
     const currentProject = useMemo(() =>
@@ -253,12 +241,12 @@ export function useAppLogic() {
             }
         } else {
             // Default to "General" or create it
-            targetFolder = targetProject.folders.find(f => f.name === 'General');
+            targetFolder = targetProject.folders.find(f => f.name === APP_CONFIG.DEFAULT_FOLDER_NAME);
             if (!targetFolder) {
-                useStore.getState().addFolder(targetProjectId, 'General');
+                useStore.getState().addFolder(targetProjectId, APP_CONFIG.DEFAULT_FOLDER_NAME);
                 const updatedProjects = useStore.getState().projects;
                 const updatedProject = updatedProjects.find(p => p.id === targetProjectId);
-                targetFolder = updatedProject?.folders.find(f => f.name === 'General');
+                targetFolder = updatedProject?.folders.find(f => f.name === APP_CONFIG.DEFAULT_FOLDER_NAME);
             }
         }
 
@@ -324,7 +312,7 @@ export function useAppLogic() {
             await clipboard.writeText(allText);
             toast.success(`Скопировано ${folder.notes.length} заметок!`);
         } catch (err) {
-            console.error(err);
+            logger.error('Failed to copy folder content:', err);
             toast.error("Ошибка копирования");
         }
     };
@@ -343,62 +331,6 @@ export function useAppLogic() {
         }
     };
 
-    const importData = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (ev) => {
-            try {
-                const data = JSON.parse(ev.target?.result as string);
-                if (!data || !Array.isArray(data.history) || !Array.isArray(data.projects)) throw new Error("Неверный формат");
-                if (data.history) setHistory(data.history);
-                if (data.projects) setProjects(data.projects);
-                if (Array.isArray(data.globalTags)) setGlobalTags(data.globalTags);
-                alert('✅ Данные восстановлены!');
-            } catch (err) { alert('❌ Ошибка файла'); }
-        };
-        reader.readAsText(file);
-        e.target.value = '';
-    };
-
-    const exportData = () => {
-        const blob = new Blob([JSON.stringify({ history, projects, globalTags, version: 2, date: new Date().toISOString() }, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `backup-${new Date().toISOString().slice(0, 10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-    };
-
-    // --- Batch Selection ---
-    const toggleSelectItem = useCallback((id: string) => {
-        setSelectedItems(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
-            } else {
-                next.add(id);
-            }
-            return next;
-        });
-    }, []);
-
-    const clearSelection = useCallback(() => {
-        setSelectedItems(new Set());
-    }, []);
-
-    const deleteSelectedItems = useCallback(() => {
-        const count = selectedItems.size;
-        if (count === 0) return;
-
-        selectedItems.forEach(id => {
-            deleteHistoryItem(id);
-        });
-
-        setSelectedItems(new Set());
-        toast.success(`Удалено ${count} элементов`);
-    }, [selectedItems, deleteHistoryItem]);
 
     return {
         // State
@@ -433,7 +365,7 @@ export function useAppLogic() {
 
         // Store Actions (passthrough if needed directly)
         addProject, addFolder, addNote, editNote, deleteNote,
-        setProjects, deleteHistoryItem,
+        deleteHistoryItem,
         renameFolder, renameProject, deleteProject, deleteFolder
     };
 }
