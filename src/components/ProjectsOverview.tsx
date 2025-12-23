@@ -92,6 +92,9 @@ const ContextMenuButton = ({
     );
 };
 
+// Alphabet for A-Z filter
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
 export function ProjectsOverview({
     projects,
     onSelectProject: _onSelectProject,
@@ -105,32 +108,43 @@ export function ProjectsOverview({
     onDropItem
 }: ProjectsOverviewProps) {
     const [search, setSearch] = useState('');
+    const [activeLetter, setActiveLetter] = useState<string | null>(null);
     const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
     const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null); // Closed by default
 
-    // Filter projects and folders based on search
+    // Filter projects and folders based on search and alphabetic filter
     const filteredData = useMemo(() => {
-        if (!search.trim()) {
-            return projects.map(p => ({ ...p, filteredFolders: p.folders }));
+        let result = projects.map(p => ({ ...p, filteredFolders: p.folders, isMatch: true }));
+
+        // Apply alphabetic filter first
+        if (activeLetter) {
+            result = result.filter(p =>
+                p.name.toUpperCase().startsWith(activeLetter)
+            );
         }
 
-        const query = search.toLowerCase();
-        return projects
-            .map(project => {
-                const matchingFolders = project.folders.filter(folder =>
-                    folder.name.toLowerCase().includes(query) ||
-                    folder.notes.some(note => note.text.toLowerCase().includes(query))
-                );
-                const projectMatches = project.name.toLowerCase().includes(query);
+        // Then apply search filter
+        if (search.trim()) {
+            const query = search.toLowerCase();
+            result = result
+                .map(project => {
+                    const matchingFolders = project.folders.filter(folder =>
+                        folder.name.toLowerCase().includes(query) ||
+                        folder.notes.some(note => note.text.toLowerCase().includes(query))
+                    );
+                    const projectMatches = project.name.toLowerCase().includes(query);
 
-                return {
-                    ...project,
-                    filteredFolders: projectMatches ? project.folders : matchingFolders,
-                    isMatch: projectMatches || matchingFolders.length > 0
-                };
-            })
-            .filter(p => p.isMatch !== false);
-    }, [projects, search]);
+                    return {
+                        ...project,
+                        filteredFolders: projectMatches ? project.folders : matchingFolders,
+                        isMatch: projectMatches || matchingFolders.length > 0
+                    };
+                })
+                .filter(p => p.isMatch !== false);
+        }
+
+        return result;
+    }, [projects, search, activeLetter]);
 
     const toggleProject = (projectId: string) => {
         setExpandedProjects(prev => {
@@ -191,6 +205,35 @@ export function ProjectsOverview({
                             Очистить
                         </button>
                     )}
+                </div>
+
+                {/* Alphabetic Filter */}
+                <div className="flex items-center gap-1 mt-3 flex-wrap">
+                    <button
+                        onClick={() => setActiveLetter(null)}
+                        className={cn(
+                            "px-2.5 py-1 rounded-lg text-xs font-medium transition-all",
+                            activeLetter === null
+                                ? "bg-accent-blue text-white"
+                                : "bg-white/5 text-text-secondary hover:text-white hover:bg-white/10"
+                        )}
+                    >
+                        Все
+                    </button>
+                    {ALPHABET.map(letter => (
+                        <button
+                            key={letter}
+                            onClick={() => setActiveLetter(letter)}
+                            className={cn(
+                                "w-7 h-7 rounded-lg text-xs font-medium transition-all",
+                                activeLetter === letter
+                                    ? "bg-accent-blue text-white"
+                                    : "bg-white/5 text-text-secondary hover:text-white hover:bg-white/10"
+                            )}
+                        >
+                            {letter}
+                        </button>
+                    ))}
                 </div>
             </div>
 
